@@ -11,18 +11,32 @@ import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.example.longyuan.websockettest.api.ConversationService;
+import com.example.longyuan.websockettest.pojo.InitConversationResponse;
+
+import javax.inject.Inject;
+
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
     private OkHttpClient client;
     private Button start;
     private TextView output;
+
+    private String mWssUrl;
+
+
+    @Inject
+    ConversationService mConversationService;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,13 +45,15 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        App.getAppComponent().inject(this);
+
         start = (Button) findViewById(R.id.start);
         output = (TextView) findViewById(R.id.output);
         client = new OkHttpClient();
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                start();
+                Init();
             }
         });
 
@@ -51,8 +67,21 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void start() {
-        Request request = new Request.Builder().url("ws://echo.websocket.org").build();
+    private void Init() {
+
+        mConversationService.getConversation("Bearer C96ZXRSP7YY.cwA.vHU.WYe7smPU5rbaiVtZbeD6j03GQ2fnLQcpt-c74E0iShw")
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(data -> start(data));
+    }
+
+    private void start(InitConversationResponse initConversationResponse) {
+        //Request request = new Request.Builder().url("ws://echo.websocket.org").build();
+
+
+
+        Request request = new Request.Builder().url(initConversationResponse.getStreamUrl()).build();
+
         EchoWebSocketListener listener = new EchoWebSocketListener();
         WebSocket ws = client.newWebSocket(request, listener);
         client.dispatcher().executorService().shutdown();
@@ -72,10 +101,13 @@ public class MainActivity extends AppCompatActivity {
         private static final int NORMAL_CLOSURE_STATUS = 1000;
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
-            webSocket.send("Hello, it's SSaurel !");
-            webSocket.send("What's up ?");
+
+            output("Connected");
+
+            webSocket.send("{\"type\":\"message\",\"text\":\"hello again\",\"from\":{\"id\":\"user\",\"name\":\"xu\"}}");
+         /*   webSocket.send("What's up ?");
             webSocket.send(ByteString.decodeHex("deadbeef"));
-            webSocket.close(NORMAL_CLOSURE_STATUS, "Goodbye !");
+            webSocket.close(NORMAL_CLOSURE_STATUS, "Goodbye !");*/
         }
         @Override
         public void onMessage(WebSocket webSocket, String text) {
