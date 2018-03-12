@@ -5,6 +5,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -12,7 +13,12 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.example.longyuan.websockettest.api.ConversationService;
+import com.example.longyuan.websockettest.pojo.From;
 import com.example.longyuan.websockettest.pojo.InitConversationResponse;
+import com.example.longyuan.websockettest.pojo.ReceivedMessage;
+import com.example.longyuan.websockettest.pojo.SendMessageRequest;
+import com.example.longyuan.websockettest.pojo.SendMessageResponse;
+import com.google.gson.Gson;
 
 import javax.inject.Inject;
 
@@ -29,10 +35,16 @@ public class MainActivity extends AppCompatActivity {
 
     private OkHttpClient client;
     private Button start;
+    private Button hi;
     private TextView output;
 
     private String mWssUrl;
 
+    private String mConversationId;
+
+
+    @Inject
+    Gson mGson;
 
     @Inject
     ConversationService mConversationService;
@@ -48,12 +60,20 @@ public class MainActivity extends AppCompatActivity {
         App.getAppComponent().inject(this);
 
         start = (Button) findViewById(R.id.start);
+        hi = (Button) findViewById(R.id.hi);
         output = (TextView) findViewById(R.id.output);
         client = new OkHttpClient();
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Init();
+            }
+        });
+
+        hi.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sayHi();
             }
         });
 
@@ -75,10 +95,39 @@ public class MainActivity extends AppCompatActivity {
                 .subscribe(data -> start(data));
     }
 
+
+    private void sayHi() {
+
+
+        SendMessageRequest sendMessageRequest = new SendMessageRequest();
+
+        sendMessageRequest.setText("Hello");
+
+        From from = new From();
+
+        from.setId("XU");
+
+        sendMessageRequest.setFrom(from);
+
+        sendMessageRequest.setType("message");
+
+
+        mConversationService.SendMessage("Bearer C96ZXRSP7YY.cwA.vHU.WYe7smPU5rbaiVtZbeD6j03GQ2fnLQcpt-c74E0iShw",mConversationId,sendMessageRequest.toString())
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(data -> process(data));
+    }
+
+    private void process(SendMessageResponse data) {
+
+        output("Message sent OK");
+    }
+
+
     private void start(InitConversationResponse initConversationResponse) {
         //Request request = new Request.Builder().url("ws://echo.websocket.org").build();
 
-
+        mConversationId = initConversationResponse.getConversationId();
 
         Request request = new Request.Builder().url(initConversationResponse.getStreamUrl()).build();
 
@@ -104,13 +153,33 @@ public class MainActivity extends AppCompatActivity {
 
             output("Connected");
 
-            webSocket.send("{\"type\":\"message\",\"text\":\"hello again\",\"from\":{\"id\":\"user\",\"name\":\"xu\"}}");
+            sayHi();
+
+            //webSocket.send("{\"type\":\"message\",\"text\":\"hello again\",\"from\":{\"id\":\"user\",\"name\":\"xu\"}}");
          /*   webSocket.send("What's up ?");
             webSocket.send(ByteString.decodeHex("deadbeef"));
             webSocket.close(NORMAL_CLOSURE_STATUS, "Goodbye !");*/
         }
         @Override
         public void onMessage(WebSocket webSocket, String text) {
+
+            Log.d("",text);
+
+            if(text!= null && !text.isEmpty())
+            {
+
+                ReceivedMessage receivedMessage  = mGson.fromJson(text, ReceivedMessage.class);
+
+
+                text = receivedMessage.getActivities().get(0).getText();
+            }
+            else
+            {
+                text = "Ping";
+            }
+
+
+
             output("Receiving : " + text);
         }
         @Override

@@ -5,14 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
+
     <Button
         android:id="@+id/start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="48dp"
+        android:layout_marginTop="46dp"
         android:text="Start !"
-        android:layout_marginTop="40dp"
-        android:textSize="17sp"/>
+        android:textSize="17sp" />
     <TextView
         android:id="@+id/output"
         android:layout_width="wrap_content"
@@ -21,4 +24,13 @@
         android:layout_centerHorizontal="true"
         android:textSize="16sp"
         android:layout_marginTop="30dp"/>
+
+    <Button
+        android:id="@+id/hi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/output"
+        android:layout_marginStart="47dp"
+        android:layout_toEndOf="@+id/output"
+        android:text="hi" />
 </RelativeLayout>
