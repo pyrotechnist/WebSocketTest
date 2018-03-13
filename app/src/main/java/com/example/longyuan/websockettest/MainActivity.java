@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
@@ -13,12 +15,18 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.example.longyuan.websockettest.api.ConversationService;
+import com.example.longyuan.websockettest.pojo.ActivitiesItem;
 import com.example.longyuan.websockettest.pojo.From;
 import com.example.longyuan.websockettest.pojo.InitConversationResponse;
 import com.example.longyuan.websockettest.pojo.ReceivedMessage;
 import com.example.longyuan.websockettest.pojo.SendMessageRequest;
 import com.example.longyuan.websockettest.pojo.SendMessageResponse;
+import com.example.longyuan.websockettest.pojo.message.Message;
+import com.example.longyuan.websockettest.utils.MessageListAdapter;
 import com.google.gson.Gson;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -40,11 +48,18 @@ public class MainActivity extends AppCompatActivity {
 
     private String mWssUrl;
 
-    private String mConversationId;
+    private List<Message> mMessageList;
 
+    private RecyclerView mMessageRecycler;
+    private MessageListAdapter mMessageAdapter;
+
+    private String mConversationId;
 
     @Inject
     Gson mGson;
+
+    @Inject
+    OkHttpClient mOkHttpClient;
 
     @Inject
     ConversationService mConversationService;
@@ -53,20 +68,28 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_new);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         App.getAppComponent().inject(this);
 
-        start = (Button) findViewById(R.id.start);
+        mMessageList = new ArrayList<>();
+        mMessageRecycler = (RecyclerView) findViewById(R.id.reyclerview_message_list);
+        mMessageAdapter = new MessageListAdapter(this, mMessageList);
+
+        mMessageRecycler.setAdapter(mMessageAdapter);
+        mMessageRecycler.setLayoutManager(new LinearLayoutManager(this));
+
+        InitConversation();
+
+       /* start = (Button) findViewById(R.id.start);
         hi = (Button) findViewById(R.id.hi);
         output = (TextView) findViewById(R.id.output);
-        client = new OkHttpClient();
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Init();
+                InitConversation();
             }
         });
 
@@ -84,10 +107,10 @@ public class MainActivity extends AppCompatActivity {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        });
+        });*/
     }
 
-    private void Init() {
+    private void InitConversation() {
 
         mConversationService.getConversation("Bearer C96ZXRSP7YY.cwA.vHU.WYe7smPU5rbaiVtZbeD6j03GQ2fnLQcpt-c74E0iShw")
                 .subscribeOn(Schedulers.newThread())
@@ -103,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
 
         sendMessageRequest.setText("Hello");
 
-        From from = new From();
+        From from = new From("");
 
         from.setId("XU");
 
@@ -120,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void process(SendMessageResponse data) {
 
-        output("Message sent OK");
+        //output("Message sent OK");
     }
 
 
@@ -132,8 +155,8 @@ public class MainActivity extends AppCompatActivity {
         Request request = new Request.Builder().url(initConversationResponse.getStreamUrl()).build();
 
         EchoWebSocketListener listener = new EchoWebSocketListener();
-        WebSocket ws = client.newWebSocket(request, listener);
-        client.dispatcher().executorService().shutdown();
+        WebSocket ws = mOkHttpClient.newWebSocket(request, listener);
+        mOkHttpClient.dispatcher().executorService().shutdown();
     }
     private void output(final String txt) {
         runOnUiThread(new Runnable() {
@@ -145,15 +168,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void sendConnectedEvent(){
+        SendMessageRequest sendMessageRequest = new SendMessageRequest();
+
+        From from = new From("");
+
+        from.setId("xu");
+
+        sendMessageRequest.setFrom(from);
+
+        sendMessageRequest.setType("event");
+
+        sendMessageRequest.setName("connected");
+
+
+        mConversationService.SendMessage("Bearer C96ZXRSP7YY.cwA.vHU.WYe7smPU5rbaiVtZbeD6j03GQ2fnLQcpt-c74E0iShw",mConversationId,sendMessageRequest.toString())
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(data -> process(data));
+    }
 
     private final class EchoWebSocketListener extends WebSocketListener {
         private static final int NORMAL_CLOSURE_STATUS = 1000;
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
 
-            output("Connected");
+            //output("Connected");
 
-            sayHi();
+            sendConnectedEvent();
 
             //webSocket.send("{\"type\":\"message\",\"text\":\"hello again\",\"from\":{\"id\":\"user\",\"name\":\"xu\"}}");
          /*   webSocket.send("What's up ?");
@@ -163,6 +205,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onMessage(WebSocket webSocket, String text) {
 
+            Message message ;
+
             Log.d("",text);
 
             if(text!= null && !text.isEmpty())
@@ -171,29 +215,37 @@ public class MainActivity extends AppCompatActivity {
                 ReceivedMessage receivedMessage  = mGson.fromJson(text, ReceivedMessage.class);
 
 
-                text = receivedMessage.getActivities().get(0).getText();
+                ActivitiesItem activitiesItem = receivedMessage.getActivities().get(0);
+
+                if(activitiesItem.getType().equals("message"))
+                {
+                    message =  new Message(receivedMessage.getActivities().get(0));
+
+                    mMessageList.add(message);
+
+                    mMessageAdapter.updateData(mMessageList);
+                }
+
             }
             else
             {
                 text = "Ping";
             }
 
-
-
-            output("Receiving : " + text);
+           // output("Receiving : " + text);
         }
         @Override
         public void onMessage(WebSocket webSocket, ByteString bytes) {
-            output("Receiving bytes : " + bytes.hex());
+           // output("Receiving bytes : " + bytes.hex());
         }
         @Override
         public void onClosing(WebSocket webSocket, int code, String reason) {
             webSocket.close(NORMAL_CLOSURE_STATUS, null);
-            output("Closing : " + code + " / " + reason);
+            //output("Closing : " + code + " / " + reason);
         }
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-            output("Error : " + t.getMessage());
+          //  output("Error : " + t.getMessage());
         }
     }
 

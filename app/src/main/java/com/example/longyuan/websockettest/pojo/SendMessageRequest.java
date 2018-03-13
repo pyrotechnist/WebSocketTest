@@ -15,6 +15,17 @@ public class SendMessageRequest{
 	@SerializedName("type")
 	private String type;
 
+	@SerializedName("name")
+	private String name;
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
 	public void setFrom(From from){
 		this.from = from;
 	}
@@ -46,6 +57,7 @@ public class SendMessageRequest{
 			"\"from\" :  " + from  +
 			",\"text\" : " +"\"" + text +"\"" +
 			",\"type\" : " +"\"" + type +"\"" +
+					",\"name\" : " +"\"" + name +"\"" +
 			"}";
 		}
 }
