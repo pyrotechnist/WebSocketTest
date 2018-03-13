@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.example.longyuan.websockettest.api.ConversationService;
@@ -41,10 +42,9 @@ import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
-    private OkHttpClient client;
-    private Button start;
+    private Button send;
     private Button hi;
-    private TextView output;
+    private EditText mEditText;
 
     private String mWssUrl;
 
@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     private MessageListAdapter mMessageAdapter;
 
     private String mConversationId;
+
+    private String mBotId;
 
     @Inject
     Gson mGson;
@@ -71,6 +73,18 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main_new);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        send = (Button) findViewById(R.id.button_chatbox_send);
+        mEditText = (EditText) findViewById(R.id.edittext_chatbox);
+
+
+
+        send.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sayHi(mEditText.getText().toString());
+            }
+        });
+
 
         App.getAppComponent().inject(this);
 
@@ -119,21 +133,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void sayHi() {
+    private void sayHi(String text) {
 
 
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
 
-        sendMessageRequest.setText("Hello");
+        sendMessageRequest.setText(text);
 
         From from = new From("");
 
-        from.setId("XU");
+        from.setId("xu");
 
         sendMessageRequest.setFrom(from);
 
         sendMessageRequest.setType("message");
 
+        mMessageList.add(new Message(sendMessageRequest));
+
+        mMessageAdapter.updateData(mMessageList);
 
         mConversationService.SendMessage("Bearer C96ZXRSP7YY.cwA.vHU.WYe7smPU5rbaiVtZbeD6j03GQ2fnLQcpt-c74E0iShw",mConversationId,sendMessageRequest.toString())
                 .subscribeOn(Schedulers.newThread())
@@ -162,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                output.setText(output.getText().toString() + "\n\n" + txt);
+               // output.setText(output.getText().toString() + "\n\n" + txt);
             }
         });
     }
@@ -207,23 +224,27 @@ public class MainActivity extends AppCompatActivity {
 
             Message message ;
 
-            Log.d("",text);
+
 
             if(text!= null && !text.isEmpty())
             {
 
+
+
                 ReceivedMessage receivedMessage  = mGson.fromJson(text, ReceivedMessage.class);
 
-
                 ActivitiesItem activitiesItem = receivedMessage.getActivities().get(0);
+                Log.d("WebSocket in",activitiesItem.toString());
 
-                if(activitiesItem.getType().equals("message"))
+
+
+                if(activitiesItem.getType().equals("message") && !activitiesItem.getFrom().getId().equals("xu"))
                 {
-                    message =  new Message(receivedMessage.getActivities().get(0));
+                    message =  new Message(activitiesItem);
 
-                    mMessageList.add(message);
+                    Log.d("WebSocket",message.getMessage());
 
-                    mMessageAdapter.updateData(mMessageList);
+                    updateData(message);
                 }
 
             }
@@ -247,6 +268,21 @@ public class MainActivity extends AppCompatActivity {
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
           //  output("Error : " + t.getMessage());
         }
+    }
+
+
+    private void updateData(Message message){
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mMessageList.add(message);
+
+                mMessageAdapter.updateData(mMessageList);
+            }
+        });
+
+
     }
 
     @Override
