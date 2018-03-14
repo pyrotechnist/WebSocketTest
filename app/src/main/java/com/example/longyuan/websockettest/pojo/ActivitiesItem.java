@@ -1,6 +1,8 @@
 package com.example.longyuan.websockettest.pojo;
 
 import javax.annotation.Generated;
+
+import com.example.longyuan.websockettest.pojo.receive.SuggestedActions;
 import com.google.gson.annotations.SerializedName;
 
 @Generated("com.robohorse.robopojogenerator")
@@ -29,6 +31,17 @@ public class ActivitiesItem{
 
 	@SerializedName("timestamp")
 	private String timestamp;
+
+	@SerializedName("suggestedActions")
+	private SuggestedActions suggestedActions;
+
+	public SuggestedActions getSuggestedActions() {
+		return suggestedActions;
+	}
+
+	public void setSuggestedActions(SuggestedActions suggestedActions) {
+		this.suggestedActions = suggestedActions;
+	}
 
 	public void setServiceUrl(String serviceUrl){
 		this.serviceUrl = serviceUrl;

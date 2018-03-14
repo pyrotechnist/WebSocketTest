@@ -1,5 +1,6 @@
 package com.example.longyuan.websockettest;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -8,11 +9,14 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.longyuan.websockettest.api.ConversationService;
@@ -23,6 +27,8 @@ import com.example.longyuan.websockettest.pojo.ReceivedMessage;
 import com.example.longyuan.websockettest.pojo.SendMessageRequest;
 import com.example.longyuan.websockettest.pojo.SendMessageResponse;
 import com.example.longyuan.websockettest.pojo.message.Message;
+import com.example.longyuan.websockettest.pojo.receive.ActionsItem;
+import com.example.longyuan.websockettest.pojo.receive.SuggestedActions;
 import com.example.longyuan.websockettest.utils.MessageListAdapter;
 import com.google.gson.Gson;
 
@@ -31,6 +37,9 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -42,15 +51,20 @@ import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Button send;
-    private Button hi;
-    private EditText mEditText;
+    @BindView(R.id.button_chatbox_send)
+    Button send;
 
-    private String mWssUrl;
+    @BindView(R.id.edittext_chatbox)
+    EditText mEditText;
+
+    @BindView(R.id.layout_actions)
+    LinearLayout mLinearLayout_Actions;
+
+    @BindView(R.id.reyclerview_message_list)
+    RecyclerView mMessageRecycler;
 
     private List<Message> mMessageList;
 
-    private RecyclerView mMessageRecycler;
     private MessageListAdapter mMessageAdapter;
 
     private String mConversationId;
@@ -66,62 +80,34 @@ public class MainActivity extends AppCompatActivity {
     @Inject
     ConversationService mConversationService;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_new);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        send = (Button) findViewById(R.id.button_chatbox_send);
-        mEditText = (EditText) findViewById(R.id.edittext_chatbox);
 
+        // View Injection
+        ButterKnife.bind(this);
 
-
-        send.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                sayHi(mEditText.getText().toString());
-            }
-        });
-
-
+        // Dependency Injection
         App.getAppComponent().inject(this);
 
-        mMessageList = new ArrayList<>();
-        mMessageRecycler = (RecyclerView) findViewById(R.id.reyclerview_message_list);
-        mMessageAdapter = new MessageListAdapter(this, mMessageList);
-
-        mMessageRecycler.setAdapter(mMessageAdapter);
-        mMessageRecycler.setLayoutManager(new LinearLayoutManager(this));
+        setUpConversationView();
 
         InitConversation();
 
-       /* start = (Button) findViewById(R.id.start);
-        hi = (Button) findViewById(R.id.hi);
-        output = (TextView) findViewById(R.id.output);
-        start.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                InitConversation();
-            }
-        });
+    }
 
-        hi.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                sayHi();
-            }
-        });
+    private void setUpConversationView() {
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });*/
+        mMessageList = new ArrayList<>();
+        mMessageAdapter = new MessageListAdapter(this, mMessageList);
+
+        mMessageRecycler.setAdapter(mMessageAdapter);
+
+        mMessageRecycler.setLayoutManager(new LinearLayoutManager(this));
+
     }
 
     private void InitConversation() {
@@ -132,13 +118,30 @@ public class MainActivity extends AppCompatActivity {
                 .subscribe(data -> start(data));
     }
 
+    @OnClick(R.id.button_chatbox_send)
+    public void sendMessageButton() {
 
-    private void sayHi(String text) {
+        String text = mEditText.getText().toString();
 
+        sendMessage(text);
+
+        View view = getCurrentFocus();
+        if (view != null) {
+            InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            inputManager.hideSoftInputFromWindow(view.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+        }
+    }
+
+
+    private void sendMessage(String  message){
+
+        mLinearLayout_Actions.removeAllViews();
+
+        mLinearLayout_Actions.invalidate();
 
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
 
-        sendMessageRequest.setText(text);
+        sendMessageRequest.setText(message);
 
         From from = new From("");
 
@@ -156,7 +159,9 @@ public class MainActivity extends AppCompatActivity {
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(data -> process(data));
+
     }
+
 
     private void process(SendMessageResponse data) {
 
@@ -165,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void start(InitConversationResponse initConversationResponse) {
-        //Request request = new Request.Builder().url("ws://echo.websocket.org").build();
 
         mConversationId = initConversationResponse.getConversationId();
 
@@ -175,15 +179,6 @@ public class MainActivity extends AppCompatActivity {
         WebSocket ws = mOkHttpClient.newWebSocket(request, listener);
         mOkHttpClient.dispatcher().executorService().shutdown();
     }
-    private void output(final String txt) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-               // output.setText(output.getText().toString() + "\n\n" + txt);
-            }
-        });
-    }
-
 
     private void sendConnectedEvent(){
         SendMessageRequest sendMessageRequest = new SendMessageRequest();
@@ -210,27 +205,17 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
 
-            //output("Connected");
-
             sendConnectedEvent();
 
-            //webSocket.send("{\"type\":\"message\",\"text\":\"hello again\",\"from\":{\"id\":\"user\",\"name\":\"xu\"}}");
-         /*   webSocket.send("What's up ?");
-            webSocket.send(ByteString.decodeHex("deadbeef"));
-            webSocket.close(NORMAL_CLOSURE_STATUS, "Goodbye !");*/
+           /*  webSocket.close(NORMAL_CLOSURE_STATUS, "Goodbye !");*/
         }
         @Override
         public void onMessage(WebSocket webSocket, String text) {
 
             Message message ;
 
-
-
             if(text!= null && !text.isEmpty())
             {
-
-
-
                 ReceivedMessage receivedMessage  = mGson.fromJson(text, ReceivedMessage.class);
 
                 ActivitiesItem activitiesItem = receivedMessage.getActivities().get(0);
@@ -241,6 +226,16 @@ public class MainActivity extends AppCompatActivity {
                 if(activitiesItem.getType().equals("message") && !activitiesItem.getFrom().getId().equals("xu"))
                 {
                     message =  new Message(activitiesItem);
+
+                    if(activitiesItem.getSuggestedActions()!=null ){
+
+                        rx.Observable.from(activitiesItem.getSuggestedActions().getActions())
+                                .subscribeOn(Schedulers.newThread())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(action -> addActionsButton(action));
+
+                        Log.d("actions",activitiesItem.getSuggestedActions().toString());
+                    }
 
                     Log.d("WebSocket",message.getMessage());
 
@@ -270,6 +265,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void addActionsButton(ActionsItem actionsItem) {
+
+        Button button = new Button(getApplicationContext());
+        button.setText(actionsItem.getText());
+        button.setTextSize(10);
+        button.setGravity(Gravity.CENTER);
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                sendMessage(actionsItem.getText());
+            }
+        });
+
+        mLinearLayout_Actions.addView(button);
+
+    }
+
+
 
     private void updateData(Message message){
 
@@ -279,6 +294,8 @@ public class MainActivity extends AppCompatActivity {
                 mMessageList.add(message);
 
                 mMessageAdapter.updateData(mMessageList);
+
+                mMessageRecycler.smoothScrollToPosition(mMessageList.size()-1);
             }
         });
 
