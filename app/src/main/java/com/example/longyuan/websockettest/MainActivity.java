@@ -207,6 +207,8 @@ public class MainActivity extends AppCompatActivity {
 
             sendConnectedEvent();
 
+            Log.d("WebSocket ","WebSocket Connected !!!!!");
+
            /*  webSocket.close(NORMAL_CLOSURE_STATUS, "Goodbye !");*/
         }
         @Override
@@ -214,14 +216,15 @@ public class MainActivity extends AppCompatActivity {
 
             Message message ;
 
+
+
             if(text!= null && !text.isEmpty())
             {
                 ReceivedMessage receivedMessage  = mGson.fromJson(text, ReceivedMessage.class);
 
                 ActivitiesItem activitiesItem = receivedMessage.getActivities().get(0);
-                Log.d("WebSocket in",activitiesItem.toString());
 
-
+                Log.d("WebSocket in","Type: "+ activitiesItem.getType() + activitiesItem.toString());
 
                 if(activitiesItem.getType().equals("message") && !activitiesItem.getFrom().getId().equals("xu"))
                 {

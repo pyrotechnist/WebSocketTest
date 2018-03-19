@@ -2,11 +2,17 @@ package com.example.longyuan.websockettest.pojo;
 
 import javax.annotation.Generated;
 
+import com.example.longyuan.websockettest.pojo.receive.AttachmentsItem;
 import com.example.longyuan.websockettest.pojo.receive.SuggestedActions;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.List;
+
 @Generated("com.robohorse.robopojogenerator")
 public class ActivitiesItem{
+
+	@SerializedName("attachments")
+	private List<AttachmentsItem> attachments;
 
 	@SerializedName("serviceUrl")
 	private String serviceUrl;
