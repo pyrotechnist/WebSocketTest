@@ -2,12 +2,14 @@ package com.example.longyuan.websockettest.utils;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.example.longyuan.websockettest.R;
 import com.example.longyuan.websockettest.pojo.message.Message;
 
@@ -93,7 +95,7 @@ public class MessageListAdapter extends RecyclerView.Adapter {
 
     private class ReceivedMessageHolder extends RecyclerView.ViewHolder {
         TextView messageText, timeText, nameText;
-        ImageView profileImage;
+        ImageView profileImage,image_message_attachment;
 
         ReceivedMessageHolder(View itemView) {
             super(itemView);
@@ -101,6 +103,7 @@ public class MessageListAdapter extends RecyclerView.Adapter {
             timeText = (TextView) itemView.findViewById(R.id.text_message_time);
             nameText = (TextView) itemView.findViewById(R.id.text_message_name);
             profileImage = (ImageView) itemView.findViewById(R.id.image_message_profile);
+            image_message_attachment = (ImageView) itemView.findViewById(R.id.image_message_attachment);
         }
 
         void bind(Message message) {
@@ -109,6 +112,17 @@ public class MessageListAdapter extends RecyclerView.Adapter {
             // Format the stored timestamp into a readable String using method.
             //timeText.setText(Utils.formatDateTime(message.getCreatedAt()));
             nameText.setText(message.getSender().getId());
+
+
+            if(message.getAttachmentUrl() != null)
+            {
+                Log.d("getAttachmentUrl:",message.getAttachmentUrl());
+                Glide.with(mContext).load(message.getAttachmentUrl()).into(image_message_attachment);
+                image_message_attachment.setVisibility(View.VISIBLE);
+
+            }else {
+               // image_message_attachment.setVisibility(View.GONE);
+            }
 
             // Insert the profile image from the URL into the ImageView.
             //Utils.displayRoundImageFromUrl(mContext, message.getSender().getProfileUrl(), profileImage);

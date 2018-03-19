@@ -240,6 +240,13 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("actions",activitiesItem.getSuggestedActions().toString());
                     }
 
+                    if(activitiesItem.getAttachments() !=null && activitiesItem.getAttachments().size() > 0){
+
+                        message =  new Message(activitiesItem.getFrom(),activitiesItem.getAttachments().get(0));
+
+                        Log.d("Attachments",activitiesItem.getAttachments().toString());
+                    }
+
                     Log.d("WebSocket",message.getMessage());
 
                     updateData(message);

@@ -49,6 +49,14 @@ public class ActivitiesItem{
 		this.suggestedActions = suggestedActions;
 	}
 
+	public List<AttachmentsItem> getAttachments() {
+		return attachments;
+	}
+
+	public void setAttachments(List<AttachmentsItem> attachments) {
+		this.attachments = attachments;
+	}
+
 	public void setServiceUrl(String serviceUrl){
 		this.serviceUrl = serviceUrl;
 	}
